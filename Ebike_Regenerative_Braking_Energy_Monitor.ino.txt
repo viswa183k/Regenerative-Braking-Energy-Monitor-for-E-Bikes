@@ -1,0 +1,42 @@
+// Regenerative Braking Energy Monitor for E-Bikes
+// INA219 → Measures charging voltage + current during regen
+
+#include <Wire.h>
+#include <Adafruit_INA219.h>
+
+Adafruit_INA219 ina219;
+
+float totalEnergy_mWh = 0;
+unsigned long lastTime = 0;
+
+void setup() {
+  Serial.begin(9600);
+  ina219.begin();
+  lastTime = millis();
+}
+
+void loop() {
+  float busVoltage = ina219.getBusVoltage_V();
+  float current_mA = ina219.getCurrent_mA();
+
+  // Energy calculation (milliwatt-hour)
+  unsigned long now = millis();
+  float deltaTime = (now - lastTime) / 3600000.0;
+  lastTime = now;
+
+  // Regen occurs only if current is positive (charging)
+  if (current_mA > 0) {
+    float power_mW = busVoltage * current_mA;
+    totalEnergy_mWh += power_mW * deltaTime;
+  }
+
+  Serial.print("Voltage: ");
+  Serial.print(busVoltage);
+  Serial.print(" V | Current (Regen): ");
+  Serial.print(current_mA);
+  Serial.print(" mA | Energy Recovered: ");
+  Serial.print(totalEnergy_mWh / 1000.0);
+  Serial.println(" Wh");
+
+  delay(700);
+}
